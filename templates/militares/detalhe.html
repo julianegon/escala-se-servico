@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}{{ m.nome }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{{ url_for('militares_lista') }}" class="btn-secondary-mil">← Militares</a>
+  <h1>👤 {{ m.nome }}</h1>
+  <span class="badge-status badge-status-{{ m.status if m.status in ('ativo','ferias','afastado') else 'other' }}">
+    {{ m.status_label }}
+  </span>
+  <div style="margin-left:auto;display:flex;gap:.5rem">
+    <a href="{{ url_for('militar_editar', id=m.id) }}" class="btn-secondary-mil">✏️ Editar</a>
+    <a href="{{ url_for('afastamento_novo') }}?military_id={{ m.id }}"
+       class="btn-secondary-mil">🚫 Afastamento</a>
+  </div>
+</div>
+
+<div class="page-body">
+  <div style="display:grid;grid-template-columns:320px 1fr;gap:1.25rem">
+
+    <!-- Coluna esquerda: dados do militar -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+
+      <div class="card">
+        <div class="card-header">📋 Dados Cadastrais</div>
+        <div class="card-body">
+          <table style="width:100%;font-size:.88rem">
+            <tr><td class="text-dim" style="padding:.3rem 0">Graduação</td>
+                <td><strong>{{ m.graduacao }}</strong></td></tr>
+            <tr><td class="text-dim" style="padding:.3rem 0">Especialidade</td>
+                <td>{{ m.especialidade or '—' }}</td></tr>
+            <tr><td class="text-dim" style="padding:.3rem 0">Antiguidade</td>
+                <td><span class="mono fw-600">{{ m.numero_antiguidade }}</span></td></tr>
+            <tr><td class="text-dim" style="padding:.3rem 0">Na escala desde</td>
+                <td>{{ m.data_entrada_escala.strftime('%d/%m/%Y') }}</td></tr>
+            <tr><td class="text-dim" style="padding:.3rem 0">Ativo</td>
+                <td>{{ '✅ Sim' if m.ativo else '⛔ Não' }}</td></tr>
+          </table>
+          {% if m.observacoes %}
+          <hr style="border-color:var(--border);margin:.75rem 0">
+          <div class="text-dim" style="font-size:.82rem">{{ m.observacoes }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Contadores por tipo -->
+      <div class="card">
+        <div class="card-header">📊 Serviços em {{ ano }}</div>
+        <div class="card-body">
+          <!-- Filtro de ano -->
+          <form method="GET" style="margin-bottom:.75rem;display:flex;gap:.5rem">
+            <input type="number" name="ano" value="{{ ano }}"
+                   class="form-control" style="width:90px">
+            <button type="submit" class="btn-secondary-mil">Ver</button>
+          </form>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem">
+            <div style="background:var(--preta-bg);border:1px solid var(--preta-bd);
+                        border-radius:6px;padding:.65rem;text-align:center">
+              <div style="font-size:1.6rem;font-weight:700;color:var(--preta-txt)">{{ stats.preta }}</div>
+              <div style="font-size:.73rem;color:var(--txt2)">🖤 Preta</div>
+            </div>
+            <div style="background:var(--diario-bg);border:1px solid var(--diario-bd);
+                        border-radius:6px;padding:.65rem;text-align:center">
+              <div style="font-size:1.6rem;font-weight:700;color:var(--diario-txt)">{{ stats.diario }}</div>
+              <div style="font-size:.73rem;color:var(--txt2)">💚 Diário</div>
+            </div>
+            <div style="background:var(--vermelha-bg);border:1px solid var(--vermelha-bd);
+                        border-radius:6px;padding:.65rem;text-align:center">
+              <div style="font-size:1.6rem;font-weight:700;color:var(--vermelha-txt)">{{ stats.vermelha }}</div>
+              <div style="font-size:.73rem;color:var(--txt2)">❤️ Vermelha</div>
+            </div>
+            <div style="background:var(--roxa-bg);border:1px solid var(--roxa-bd);
+                        border-radius:6px;padding:.65rem;text-align:center">
+              <div style="font-size:1.6rem;font-weight:700;color:var(--roxa-txt)">{{ stats.roxa }}</div>
+              <div style="font-size:.73rem;color:var(--txt2)">💜 Roxa</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Afastamentos -->
+      <div class="card">
+        <div class="card-header d-flex justify-between align-center">
+          🚫 Afastamentos
+          <a href="{{ url_for('afastamento_novo') }}?military_id={{ m.id }}"
+             style="font-size:.78rem">+ Novo</a>
+        </div>
+        <div class="card-body p-0">
+          {% if afastamentos_list %}
+          <table class="table-dark-custom">
+            {% for af in afastamentos_list[:6] %}
+            <tr>
+              <td>
+                <div style="font-size:.8rem;font-weight:500">{{ af.tipo_label }}</div>
+                <div style="font-size:.72rem;color:var(--txt2)">
+                  {{ af.data_inicio.strftime('%d/%m/%Y') }} → {{ af.data_fim.strftime('%d/%m/%Y') }}
+                  ({{ af.duracao_dias }}d)
+                </div>
+              </td>
+              <td>
+                {% if af.ativo_hoje %}
+                <span style="font-size:.7rem;background:#0d2b19;color:var(--green);
+                             border:1px solid var(--dark-green);
+                             padding:.1em .4em;border-radius:3px">Ativo</span>
+                {% endif %}
+              </td>
+              <td>
+                <a href="{{ url_for('afastamento_editar', id=af.id) }}"
+                   style="font-size:.75rem;color:var(--txt2)">✏️</a>
+              </td>
+            </tr>
+            {% endfor %}
+          </table>
+          {% else %}
+          <div style="padding:.75rem;text-align:center;color:var(--txt2);font-size:.83rem">
+            Sem afastamentos
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Coluna direita: histórico de serviços -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+
+      <!-- Serviços do ano -->
+      <div class="card">
+        <div class="card-header">📅 Serviços em {{ ano }}</div>
+        <div class="card-body p-0" style="overflow-x:auto">
+          {% if servicos_ano %}
+          <table class="table-dark-custom">
+            <thead>
+              <tr>
+                <th>Data</th><th>Dia</th><th>Tipo</th><th>Evento</th><th>Obs</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for s in servicos_ano %}
+              <tr>
+                <td class="nowrap">{{ s.data.strftime('%d/%m/%Y') }}</td>
+                <td class="text-dim">{{ dias_semana[s.data.weekday()] }}</td>
+                <td><span class="badge-{{ s.tipo_escala }}">{{ s.tipo_label }}</span></td>
+                <td class="text-dim">{{ s.nome_evento or '—' }}</td>
+                <td>
+                  {% if s.troca_forcada %}<span class="badge-tf">TF</span>{% endif %}
+                  {% if s.observacoes %}
+                  <span class="text-dim" style="font-size:.75rem"
+                        data-tooltip="{{ s.observacoes }}">ℹ️</span>
+                  {% endif %}
+                  <form method="POST"
+                        action="{{ url_for('servico_excluir', id=s.id) }}"
+                        style="display:inline"
+                        data-confirm="Remover este serviço?">
+                    <button class="btn-danger-mil"
+                            style="padding:.1rem .4rem;font-size:.7rem">✕</button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <div style="padding:1.5rem;text-align:center;color:var(--txt2)">
+            Nenhum serviço em {{ ano }}.
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Histórico Roxa -->
+      {% if historico_roxa %}
+      <div class="card">
+        <div class="card-header">💜 Histórico Feriados Críticos (Roxa)</div>
+        <div class="card-body p-0">
+          <table class="table-dark-custom">
+            <thead><tr><th>Data</th><th>Evento</th><th>Observações</th></tr></thead>
+            <tbody>
+              {% for s in historico_roxa %}
+              <tr>
+                <td class="nowrap text-dim">{{ s.data.strftime('%d/%m/%Y') }}</td>
+                <td><span class="badge-roxa">{{ s.nome_evento or 'Feriado Crítico' }}</span></td>
+                <td class="text-dim" style="font-size:.8rem">
+                  {{ s.observacoes or '—' }}
+                  {% if s.troca_forcada %}<span class="badge-tf" style="margin-left:.25rem">TF</span>{% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

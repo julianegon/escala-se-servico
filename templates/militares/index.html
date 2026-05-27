@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+{% block title %}Militares{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>👥 Militares</h1>
+  <a href="{{ url_for('militar_novo') }}" class="btn-primary-mil" style="margin-left:auto">
+    ➕ Cadastrar Militar
+  </a>
+</div>
+
+<div class="page-body">
+
+  <!-- Filtros -->
+  <form method="GET" class="card" style="margin-bottom:1.25rem">
+    <div class="card-body" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:180px">
+        <label class="form-label">Buscar por nome</label>
+        <input type="text" name="q" value="{{ q }}" class="form-control"
+               placeholder="Nome do militar…">
+      </div>
+      <div style="min-width:160px">
+        <label class="form-label">Status</label>
+        <select name="status" class="form-select">
+          <option value="">Todos</option>
+          {% for k, v in status_labels.items() %}
+          <option value="{{ k }}" {{ 'selected' if status_f==k }}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn-primary-mil">🔍 Filtrar</button>
+      <a href="{{ url_for('militares_lista') }}" class="btn-secondary-mil">Limpar</a>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card-header">
+      {{ militares|length }} militar(es) encontrado(s)
+    </div>
+    <div class="card-body p-0" style="overflow-x:auto">
+      {% if militares %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th>Antig.</th>
+            <th>Nome</th>
+            <th>Graduação</th>
+            <th>Especialidade</th>
+            <th>Status</th>
+            <th>Na Escala desde</th>
+            <th>🖤</th><th>💚</th><th>❤️</th><th>💜</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for m in militares %}
+          <tr {% if not m.ativo %}style="opacity:.45"{% endif %}>
+            <td class="text-dim mono">{{ m.numero_antiguidade }}</td>
+            <td>
+              <a href="{{ url_for('militar_detalhe', id=m.id) }}"
+                 style="color:var(--txt);font-weight:500">{{ m.nome }}</a>
+              {% if not m.ativo %}
+                <span style="font-size:.7rem;color:var(--txt2)"> (inativo)</span>
+              {% endif %}
+            </td>
+            <td class="text-dim">{{ m.graduacao }}</td>
+            <td class="text-dim">{{ m.especialidade or '—' }}</td>
+            <td>
+              <span class="badge-status badge-status-{{ m.status if m.status in ('ativo','ferias','afastado') else 'other' }}">
+                {{ m.status_label }}
+              </span>
+            </td>
+            <td class="text-dim nowrap">{{ m.data_entrada_escala.strftime('%d/%m/%Y') }}</td>
+            <td><span class="badge-preta">{{ m.count_tipo('preta') }}</span></td>
+            <td><span class="badge-diario">{{ m.count_tipo('diario') }}</span></td>
+            <td><span class="badge-vermelha">{{ m.count_tipo('vermelha') }}</span></td>
+            <td><span class="badge-roxa">{{ m.count_tipo('roxa') }}</span></td>
+            <td class="nowrap">
+              <a href="{{ url_for('militar_editar', id=m.id) }}"
+                 class="btn-secondary-mil" style="padding:.25rem .55rem;font-size:.8rem">✏️</a>
+              <a href="{{ url_for('afastamento_novo') }}?military_id={{ m.id }}"
+                 class="btn-secondary-mil" style="padding:.25rem .55rem;font-size:.8rem"
+                 title="Registrar afastamento">🚫</a>
+              <form method="POST" action="{{ url_for('militar_toggle', id=m.id) }}"
+                    style="display:inline">
+                <button type="submit" class="btn-secondary-mil"
+                        style="padding:.25rem .55rem;font-size:.8rem"
+                        title="{{ 'Reativar' if not m.ativo else 'Desativar' }}">
+                  {{ '✅' if not m.ativo else '⛔' }}
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('militar_excluir', id=m.id) }}"
+                    style="display:inline"
+                    data-confirm="Confirma exclusão de {{ m.nome }}? Todos os serviços serão removidos.">
+                <button type="submit" class="btn-danger-mil"
+                        style="padding:.25rem .55rem;font-size:.8rem">🗑️</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:2rem;text-align:center;color:var(--txt2)">
+        Nenhum militar encontrado.
+        <a href="{{ url_for('militar_novo') }}">Cadastrar o primeiro</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Legenda de tipos de escala -->
+  <div style="margin-top:1rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:var(--txt2)">
+    <span>🖤 Preta = Pernoite Útil</span>
+    <span>💚 Diário = Leve 12h–16h</span>
+    <span>❤️ Vermelha = FDS / Feriado</span>
+    <span>💜 Roxa = Feriado Crítico</span>
+    <span class="text-dim">(contagens totais de todos os anos)</span>
+  </div>
+
+</div>
+{% endblock %}

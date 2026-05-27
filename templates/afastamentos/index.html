@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Afastamentos{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🚫 Afastamentos</h1>
+  <a href="{{ url_for('afastamento_novo') }}" class="btn-primary-mil" style="margin-left:auto">
+    ➕ Registrar Afastamento
+  </a>
+</div>
+
+<div class="page-body">
+
+  <!-- Filtros -->
+  <form method="GET" class="card" style="margin-bottom:1.25rem">
+    <div class="card-body" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+      <div style="flex:1;min-width:180px">
+        <label class="form-label">Militar</label>
+        <select name="militar_id" class="form-select">
+          <option value="">Todos</option>
+          {% for m in militares_todos %}
+          <option value="{{ m.id }}" {{ 'selected' if militar_id == m.id }}>
+            {{ m.nome }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div style="display:flex;align-items:flex-end;gap:.5rem">
+        <label style="display:flex;align-items:center;gap:.4rem;cursor:pointer;font-size:.88rem">
+          <input type="checkbox" name="ativos" value="1"
+                 class="form-check-input"
+                 {{ 'checked' if apenas_ativos }}>
+          Apenas afastamentos ativos hoje
+        </label>
+      </div>
+      <button type="submit" class="btn-primary-mil">🔍 Filtrar</button>
+      <a href="{{ url_for('afastamentos_lista') }}" class="btn-secondary-mil">Limpar</a>
+    </div>
+  </form>
+
+  <div class="card">
+    <div class="card-header">{{ afastamentos|length }} afastamento(s)</div>
+    <div class="card-body p-0" style="overflow-x:auto">
+      {% if afastamentos %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th>Militar</th>
+            <th>Tipo</th>
+            <th>Início</th>
+            <th>Fim</th>
+            <th>Duração</th>
+            <th>Status</th>
+            <th>Motivo</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for af in afastamentos %}
+          <tr>
+            <td>
+              <a href="{{ url_for('militar_detalhe', id=af.militar.id) }}"
+                 style="color:var(--txt)">{{ af.militar.nome }}</a>
+              <div style="font-size:.73rem;color:var(--txt2)">{{ af.militar.graduacao }}</div>
+            </td>
+            <td>
+              <span class="badge-status badge-status-{{ af.tipo if af.tipo in ('ativo','ferias','afastado') else 'other' }}">
+                {{ af.tipo_label }}
+              </span>
+            </td>
+            <td class="nowrap text-dim">{{ af.data_inicio.strftime('%d/%m/%Y') }}</td>
+            <td class="nowrap text-dim">{{ af.data_fim.strftime('%d/%m/%Y') }}</td>
+            <td class="text-dim">{{ af.duracao_dias }}d</td>
+            <td>
+              {% if af.ativo_hoje %}
+              <span style="background:#0d2b19;color:var(--green);border:1px solid var(--dark-green);
+                           padding:.15em .5em;border-radius:3px;font-size:.75rem;font-weight:600">
+                ✅ Ativo
+              </span>
+              {% elif af.data_inicio > hoje %}
+              <span style="background:#0a1f3b;color:var(--accent);border:1px solid #1f6feb;
+                           padding:.15em .5em;border-radius:3px;font-size:.75rem">
+                📅 Futuro
+              </span>
+              {% else %}
+              <span style="font-size:.75rem;color:var(--txt2)">Encerrado</span>
+              {% endif %}
+            </td>
+            <td class="text-dim" style="max-width:180px;font-size:.82rem">
+              {{ af.motivo or '—' }}
+            </td>
+            <td class="nowrap">
+              <a href="{{ url_for('afastamento_editar', id=af.id) }}"
+                 class="btn-secondary-mil" style="padding:.25rem .55rem;font-size:.8rem">✏️</a>
+              <form method="POST" action="{{ url_for('afastamento_excluir', id=af.id) }}"
+                    style="display:inline"
+                    data-confirm="Remover este afastamento?">
+                <button type="submit" class="btn-danger-mil"
+                        style="padding:.25rem .55rem;font-size:.8rem">🗑️</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:2rem;text-align:center;color:var(--txt2)">
+        Nenhum afastamento encontrado.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

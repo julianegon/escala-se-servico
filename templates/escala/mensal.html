@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Escala {{ mes_nome }}/{{ ano }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📅 Escala — {{ mes_nome }} {{ ano }}</h1>
+
+  <!-- Navegação de mês -->
+  <div style="display:flex;align-items:center;gap:.5rem;margin-left:auto">
+    <a href="{{ url_for('escala_mensal', ano=ano_ant, mes=mes_ant) }}"
+       class="btn-secondary-mil">◀ {{ meses_pt[mes_ant][:3] }}</a>
+    <span class="text-dim" style="font-size:.85rem">{{ mes_nome }} {{ ano }}</span>
+    <a href="{{ url_for('escala_mensal', ano=ano_prox, mes=mes_prox) }}"
+       class="btn-secondary-mil">{{ meses_pt[mes_prox][:3] }} ▶</a>
+  </div>
+
+  <a href="{{ url_for('escala_gerar') }}" class="btn-primary-mil">⚙️ Gerar/Reger</a>
+  <button onclick="window.print()" class="btn-secondary-mil">🖨️ Imprimir</button>
+</div>
+
+<div class="page-body">
+
+  <!-- Resumo do mês -->
+  <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem">
+    <div style="background:var(--preta-bg);border:1px solid var(--preta-bd);
+                border-radius:6px;padding:.55rem .9rem;font-size:.85rem">
+      🖤 Preta: <strong style="color:var(--preta-txt)">{{ totais.preta }}</strong>
+    </div>
+    <div style="background:var(--diario-bg);border:1px solid var(--diario-bd);
+                border-radius:6px;padding:.55rem .9rem;font-size:.85rem">
+      💚 Diário: <strong style="color:var(--diario-txt)">{{ totais.diario }}</strong>
+    </div>
+    <div style="background:var(--vermelha-bg);border:1px solid var(--vermelha-bd);
+                border-radius:6px;padding:.55rem .9rem;font-size:.85rem">
+      ❤️ Vermelha: <strong style="color:var(--vermelha-txt)">{{ totais.vermelha }}</strong>
+    </div>
+    <div style="background:var(--roxa-bg);border:1px solid var(--roxa-bd);
+                border-radius:6px;padding:.55rem .9rem;font-size:.85rem">
+      💜 Roxa: <strong style="color:var(--roxa-txt)">{{ totais.roxa }}</strong>
+    </div>
+    {% if trocas > 0 %}
+    <div style="background:#2d1b00;border:1px solid var(--yellow);
+                border-radius:6px;padding:.55rem .9rem;font-size:.85rem">
+      ⚠️ TF: <strong style="color:var(--yellow)">{{ trocas }}</strong>
+    </div>
+    {% endif %}
+    {% if not escala_gerada %}
+    <div class="alert-mil alert-mil-warning" style="margin:0;flex:1">
+      ⚠️ Escala não gerada para este mês.
+      <a href="{{ url_for('escala_gerar') }}">Gerar agora</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Calendário -->
+  <div class="card">
+    <div class="card-body p-0" style="overflow-x:auto">
+      <table class="cal-table">
+        <thead>
+          <tr>
+            {% for d in dias_semana %}
+            <th>{{ d }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for semana in semanas %}
+          <tr>
+            {% for cell in semana %}
+            {% if cell is none %}
+            <td class="cal-cell vazio"></td>
+            {% else %}
+            <td class="cal-cell {{ cell.tipo_dia }} {{ 'hoje' if cell.hoje }}">
+              <div class="cal-day-num">{{ cell.dia }}</div>
+
+              {% if cell.nome_evento %}
+              <span class="cal-event-name">{{ cell.nome_evento }}</span>
+              {% endif %}
+
+              {% for s in cell.servicos %}
+              <div class="cal-srv {{ s.tipo_escala }}"
+                   title="{{ s.militar.nome }} — {{ s.tipo_label }}{% if s.troca_forcada %} (TF){% endif %}">
+                <span>{{ s.tipo_label[0] }}</span>
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
+                  {{ s.militar.nome.split()[-1] }}
+                </span>
+                {% if s.troca_forcada %}<span class="tf-dot">⚠</span>{% endif %}
+                <!-- Ações rápidas (ocultas no print) -->
+                <span class="no-print" style="display:flex;gap:2px;margin-left:2px">
+                  <a href="{{ url_for('servico_editar', id=s.id) }}"
+                     style="color:inherit;opacity:.6;font-size:.65rem"
+                     title="Editar">✏</a>
+                  <a href="#" onclick="submitPost('{{ url_for('servico_excluir', id=s.id) }}',
+                     'Remover serviço de {{ s.militar.nome }}?');return false"
+                     style="color:var(--red);opacity:.6;font-size:.65rem"
+                     title="Remover">✕</a>
+                </span>
+              </div>
+              {% endfor %}
+
+              <!-- Botão add serviço nesse dia -->
+              <a href="{{ url_for('servico_novo') }}?data={{ cell.data.isoformat() }}"
+                 class="no-print"
+                 style="display:block;font-size:.65rem;color:var(--txt2);
+                        margin-top:.2rem;opacity:0;transition:opacity .15s"
+                 onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0"
+                 title="Adicionar serviço neste dia">＋ add</a>
+            </td>
+            {% endif %}
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Legenda -->
+  <div style="margin-top:.75rem;display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;color:var(--txt2)">
+    <span>🖤 <span class="badge-preta">Preta</span> Pernoite dia útil</span>
+    <span>💚 <span class="badge-diario">Diário</span> Serviço leve 12h–16h</span>
+    <span>❤️ <span class="badge-vermelha">Vermelha</span> Final de semana/feriado</span>
+    <span>💜 <span class="badge-roxa">Roxa</span> Feriado crítico/recesso</span>
+    <span><span class="badge-tf">TF</span> Troca forçada (conflito resolvido)</span>
+  </div>
+
+</div>
+{% endblock %}

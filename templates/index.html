@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📊 Dashboard Operacional</h1>
+  <span class="text-dim" style="font-size:.85rem">
+    {{ hoje.strftime('%A, %d de %B de %Y').capitalize() }}
+  </span>
+  {% if not escala_gerada %}
+  <a href="{{ url_for('escala_gerar') }}"
+     class="btn-primary-mil ms-auto" style="margin-left:auto">
+    ⚙️ Gerar escala do mês
+  </a>
+  {% endif %}
+</div>
+
+<div class="page-body">
+
+  <!-- ── Stat cards ─────────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem">
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#0a1f3b">👥</div>
+      <div>
+        <div class="stat-val text-accent">{{ total_mil }}</div>
+        <div class="stat-lbl">Total Militares Ativos</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#0d2b19">✅</div>
+      <div>
+        <div class="stat-val text-green">{{ disponiveis }}</div>
+        <div class="stat-lbl">Disponíveis Hoje</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#2d0d0d">🚫</div>
+      <div>
+        <div class="stat-val text-red">{{ afastados }}</div>
+        <div class="stat-lbl">Afastados / Indisponíveis</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#1a1208">📋</div>
+      <div>
+        <div class="stat-val" style="color:var(--yellow)">{{ serv_mes }}</div>
+        <div class="stat-lbl">Serviços este Mês</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#1a0b2e">⚠️</div>
+      <div>
+        <div class="stat-val text-purple">{{ trocas_mes }}</div>
+        <div class="stat-lbl">Trocas Forçadas Mês</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── Grid principal ─────────────────────────────────────── -->
+  <div style="display:grid;grid-template-columns:1fr 380px;gap:1.25rem;margin-bottom:1.5rem">
+
+    <!-- Gráfico de carga -->
+    <div class="card">
+      <div class="card-header">
+        📊 Carga Operacional por Militar — {{ ano_atual }}
+      </div>
+      <div class="card-body" style="height:300px">
+        <canvas id="cargaChart" data-ano="{{ ano_atual }}"></canvas>
+      </div>
+    </div>
+
+    <!-- Painel lateral -->
+    <div style="display:flex;flex-direction:column;gap:1rem">
+
+      <!-- Indisponíveis -->
+      <div class="card">
+        <div class="card-header">🚫 Indisponíveis Agora</div>
+        <div class="card-body p-0">
+          {% if indisponiveis %}
+          <table class="table-dark-custom" style="width:100%">
+            {% for af in indisponiveis %}
+            <tr>
+              <td>
+                <a href="{{ url_for('militar_detalhe', id=af.militar.id) }}"
+                   style="color:var(--txt)">{{ af.militar.nome }}</a>
+              </td>
+              <td class="nowrap text-right" style="text-align:right">
+                <span class="badge-status badge-status-afastado">{{ af.tipo_label }}</span>
+              </td>
+              <td class="text-dim nowrap" style="font-size:.75rem">
+                até {{ af.data_fim.strftime('%d/%m') }}
+              </td>
+            </tr>
+            {% endfor %}
+          </table>
+          {% else %}
+          <div style="padding:1rem;text-align:center;color:var(--txt2);font-size:.85rem">
+            ✅ Todos disponíveis
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Alertas de fadiga -->
+      {% if alertas_fadiga %}
+      <div class="card">
+        <div class="card-header" style="color:var(--yellow)">⚠️ Alertas de Fadiga</div>
+        <div class="card-body p-0">
+          <table class="table-dark-custom">
+            {% for c in alertas_fadiga[:5] %}
+            <tr>
+              <td><a href="{{ url_for('militar_detalhe', id=c.militar.id) }}"
+                     style="color:var(--txt)">{{ c.militar.nome.split()[0] }}</a></td>
+              <td class="nowrap" style="text-align:right">
+                <span class="text-red fw-600">{{ c.pesado }}</span>
+                <span class="text-dim"> pesados</span>
+              </td>
+            </tr>
+            {% endfor %}
+          </table>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <!-- ── Próximos serviços ─────────────────────────────────── -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header d-flex justify-between align-center">
+      <span>📅 Próximos Serviços</span>
+      <a href="{{ url_for('escala_mensal', ano=ano_atual, mes=mes_atual) }}"
+         style="font-size:.8rem">Ver calendário →</a>
+    </div>
+    <div class="card-body p-0">
+      {% if prox_servicos %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th>Data</th><th>Militar</th><th>Tipo</th><th>Evento</th><th>Obs</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in prox_servicos %}
+          <tr>
+            <td class="nowrap text-dim">{{ s.data.strftime('%d/%m/%Y') }}
+              <span style="font-size:.7rem">{{ ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'][s.data.weekday()] }}</span>
+            </td>
+            <td><a href="{{ url_for('militar_detalhe', id=s.militar.id) }}"
+                   style="color:var(--txt)">{{ s.militar.nome }}</a></td>
+            <td><span class="badge-{{ s.tipo_escala }}">{{ s.tipo_label }}</span></td>
+            <td class="text-dim" style="font-size:.8rem">{{ s.nome_evento or '—' }}</td>
+            <td>
+              {% if s.troca_forcada %}<span class="badge-tf">TF</span>{% endif %}
+              {% if s.observacoes %}
+              <span class="text-dim" style="font-size:.75rem"
+                    data-tooltip="{{ s.observacoes }}">ℹ️</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--txt2)">
+        Nenhum serviço agendado.
+        <a href="{{ url_for('escala_gerar') }}">Gerar escala</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- ── Tabela de carga ───────────────────────────────────── -->
+  <div class="card">
+    <div class="card-header d-flex justify-between align-center">
+      <span>⚖️ Distribuição de Carga — {{ ano_atual }}</span>
+      <a href="{{ url_for('relatorios') }}" style="font-size:.8rem">Relatório completo →</a>
+    </div>
+    <div class="card-body p-0" style="overflow-x:auto">
+      {% if carga %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th>#</th><th>Militar</th>
+            <th title="Preta">🖤 Preta</th>
+            <th title="Diário">💚 Diário</th>
+            <th title="Vermelha">❤️ Verm.</th>
+            <th title="Roxa">💜 Roxa</th>
+            <th>Total</th>
+            <th>Pesados</th>
+            <th style="min-width:100px">Distribuição</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in carga %}
+          {% set max_total = carga[0].total if carga else 1 %}
+          <tr>
+            <td class="text-dim">{{ c.militar.numero_antiguidade }}</td>
+            <td>
+              <a href="{{ url_for('militar_detalhe', id=c.militar.id) }}"
+                 style="color:var(--txt)">{{ c.militar.nome }}</a>
+              <div style="font-size:.72rem;color:var(--txt2)">{{ c.militar.graduacao }}</div>
+            </td>
+            <td><span class="badge-preta">{{ c.preta }}</span></td>
+            <td><span class="badge-diario">{{ c.diario }}</span></td>
+            <td><span class="badge-vermelha">{{ c.vermelha }}</span></td>
+            <td><span class="badge-roxa">{{ c.roxa }}</span></td>
+            <td class="fw-600">{{ c.total }}</td>
+            <td>
+              {% if c.pesado >= 8 %}
+              <span class="text-red fw-600">{{ c.pesado }} ⚠️</span>
+              {% else %}
+              {{ c.pesado }}
+              {% endif %}
+            </td>
+            <td>
+              {% if max_total > 0 %}
+              <div class="prog-bar-wrap" title="{{ c.total }} serviços">
+                <div class="prog-bar prog-preta" style="width:{{ (c.preta/max_total*100)|round }}%"></div>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--txt2)">
+        Nenhum militar cadastrado.
+        <a href="{{ url_for('militar_novo') }}">Cadastrar</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

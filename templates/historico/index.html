@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}Histórico{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📜 Histórico de Serviços</h1>
+</div>
+
+<div class="page-body">
+
+  <!-- Filtros -->
+  <form method="GET" class="card" style="margin-bottom:1.25rem">
+    <div class="card-body" style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end">
+
+      <div style="flex:1;min-width:160px">
+        <label class="form-label">Militar</label>
+        <select name="militar_id" class="form-select">
+          <option value="">Todos</option>
+          {% for m in militares_todos %}
+          <option value="{{ m.id }}" {{ 'selected' if militar_id == m.id }}>
+            {{ m.nome }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:130px">
+        <label class="form-label">Tipo</label>
+        <select name="tipo" class="form-select">
+          <option value="">Todos</option>
+          {% for k, v in escala_labels.items() %}
+          <option value="{{ k }}" {{ 'selected' if tipo_f == k }}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:100px">
+        <label class="form-label">Ano</label>
+        <select name="ano" class="form-select">
+          <option value="">Todos</option>
+          {% for a in anos_disp %}
+          <option value="{{ a }}" {{ 'selected' if ano_f == a }}>{{ a }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div style="min-width:150px">
+        <label class="form-label">Evento (Roxa)</label>
+        <input type="text" name="evento" value="{{ evento_f }}" class="form-control"
+               placeholder="Natal, Ano Novo…">
+      </div>
+
+      <button type="submit" class="btn-primary-mil">🔍 Filtrar</button>
+      <a href="{{ url_for('historico') }}" class="btn-secondary-mil">Limpar</a>
+    </div>
+  </form>
+
+  <!-- Tabela de histórico -->
+  <div class="card">
+    <div class="card-header d-flex justify-between align-center">
+      <span>{{ paginado.total }} registro(s) encontrado(s)</span>
+      <span class="text-dim" style="font-size:.8rem">
+        Pág. {{ paginado.page }} / {{ paginado.pages }}
+      </span>
+    </div>
+    <div class="card-body p-0" style="overflow-x:auto">
+      {% if paginado.items %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Dia</th>
+            <th>Militar</th>
+            <th>Graduação</th>
+            <th>Tipo</th>
+            <th>Evento</th>
+            <th>TF</th>
+            <th>Origem</th>
+            <th>Observações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in paginado.items %}
+          <tr>
+            <td class="nowrap">{{ s.data.strftime('%d/%m/%Y') }}</td>
+            <td class="text-dim">{{ dias_semana[s.data.weekday()] }}</td>
+            <td>
+              <a href="{{ url_for('militar_detalhe', id=s.militar.id) }}"
+                 style="color:var(--txt)">{{ s.militar.nome }}</a>
+            </td>
+            <td class="text-dim" style="font-size:.8rem">{{ s.militar.graduacao }}</td>
+            <td><span class="badge-{{ s.tipo_escala }}">{{ s.tipo_label }}</span></td>
+            <td class="text-dim" style="font-size:.82rem">{{ s.nome_evento or '—' }}</td>
+            <td>
+              {% if s.troca_forcada %}
+              <span class="badge-tf">TF</span>
+              {% else %}
+              <span class="text-dim">—</span>
+              {% endif %}
+            </td>
+            <td class="text-dim" style="font-size:.78rem">
+              {{ 'Auto' if s.gerado_auto else 'Manual' }}
+            </td>
+            <td class="text-dim" style="font-size:.78rem;max-width:200px">
+              {{ s.observacoes or '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:2rem;text-align:center;color:var(--txt2)">
+        Nenhum registro encontrado com os filtros aplicados.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Paginação -->
+  {% if paginado.pages > 1 %}
+  <div style="margin-top:1rem">
+    <div class="pagination-mil">
+      {% if paginado.has_prev %}
+      <a href="{{ url_for('historico', militar_id=militar_id, tipo=tipo_f, ano=ano_f,
+                           evento=evento_f, page=paginado.prev_num) }}">◀ Anterior</a>
+      {% endif %}
+
+      {% for p in paginado.iter_pages(left_edge=2, right_edge=2, left_current=2, right_current=2) %}
+        {% if p %}
+          {% if p == paginado.page %}
+          <span class="current">{{ p }}</span>
+          {% else %}
+          <a href="{{ url_for('historico', militar_id=militar_id, tipo=tipo_f, ano=ano_f,
+                               evento=evento_f, page=p) }}">{{ p }}</a>
+          {% endif %}
+        {% else %}
+          <span style="color:var(--txt2)">…</span>
+        {% endif %}
+      {% endfor %}
+
+      {% if paginado.has_next %}
+      <a href="{{ url_for('historico', militar_id=militar_id, tipo=tipo_f, ano=ano_f,
+                           evento=evento_f, page=paginado.next_num) }}">Próximo ▶</a>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}
