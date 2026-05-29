@@ -6,6 +6,11 @@ Sistema web completo para geração automática e controle operacional da escala
 
 ## 🚀 Instalação e Execução
 
+### Pré-requisitos
+- Python 3.10+
+- PostgreSQL 13+ em execução
+- Banco de dados criado: `createdb escala_naval`
+
 ```bash
 # 1. Clonar / entrar no repositório
 cd escala-se-servico
@@ -13,14 +18,42 @@ cd escala-se-servico
 # 2. Instalar dependências
 pip install -r requirements.txt
 
-# 3. Popular com dados de exemplo (opcional)
+# 3. Configurar variáveis de ambiente
+cp .env.example .env
+# Edite .env: defina SECRET_KEY e DATABASE_URL
+
+# 4. Aplicar migrações (cria o schema no PostgreSQL)
+flask db upgrade
+
+# 5. Popular com dados de exemplo (opcional)
 python seed_data.py
 
-# 4. Iniciar o servidor
+# 6. Iniciar o servidor
 python app.py
 ```
 
 Acesse: **http://localhost:5000**
+
+### Variáveis de Ambiente
+
+| Variável | Obrigatória | Descrição |
+|---|---|---|
+| `SECRET_KEY` | ✅ Sim | Chave criptográfica. Gere: `python -c "import secrets; print(secrets.token_hex(32))"` |
+| `DATABASE_URL` | ❌ Não | URI PostgreSQL (padrão: `postgresql://localhost/escala_naval`) |
+| `FLASK_DEBUG` | ❌ Não | `1` para habilitar debug (somente desenvolvimento) |
+
+### Gerenciamento de Schema (Flask-Migrate)
+
+```bash
+# Primeira vez: inicializar repositório de migrações
+flask db init
+
+# Gerar nova migração após alterações em models.py
+flask db migrate -m "descrição da mudança"
+
+# Aplicar migrações pendentes
+flask db upgrade
+```
 
 ---
 
@@ -108,7 +141,8 @@ Feriados comuns nacionais (Escala Vermelha):
 ---
 
 ## 🛠️ Tecnologias
-- **Python 3.10+** / **Flask 3** / **SQLAlchemy** / **SQLite**
+- **Python 3.10+** / **Flask 3** / **SQLAlchemy** / **Flask-Migrate** (Alembic)
+- **PostgreSQL** como banco de dados principal (`psycopg2-binary`)
+- **Flask-WTF** para proteção CSRF
 - **Bootstrap 5** (CDN) + CSS customizado tema militar escuro
 - **Chart.js** para gráficos de carga
-- Banco de dados SQLite — arquivo único `escala.db`

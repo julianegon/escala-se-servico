@@ -12,6 +12,7 @@
     <div class="card-header">Dados do Militar</div>
     <div class="card-body">
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
 
@@ -91,7 +92,8 @@
           {% if militar %}
           <form method="POST" action="{{ url_for('militar_excluir', id=militar.id) }}"
                 style="margin-left:auto"
-                data-confirm="Confirma exclusão de {{ militar.nome }}?">
+                data-confirm="Confirma exclusão de {{ militar.nome|e }}?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn-danger-mil">🗑️ Excluir</button>
           </form>
           {% endif %}

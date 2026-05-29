@@ -12,6 +12,7 @@
     <div class="card-header">Dados do Afastamento</div>
     <div class="card-body">
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div style="margin-bottom:1rem">
           <label class="form-label">Militar *</label>
@@ -77,6 +78,7 @@
           {% if af %}
           <form method="POST" action="{{ url_for('afastamento_excluir', id=af.id) }}"
                 style="margin-left:auto" data-confirm="Remover este afastamento?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn-danger-mil">🗑️ Remover</button>
           </form>
           {% endif %}

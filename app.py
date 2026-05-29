@@ -5,6 +5,8 @@ Sistema Inteligente de Escala Militar — Contramestre
 from flask import (Flask, render_template, request, redirect,
                    url_for, flash, jsonify, abort)
 from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from datetime import date, datetime
 from calendar import monthrange
 import os
@@ -18,11 +20,22 @@ from scheduler import (gerar_escala_mensal, build_calendario,
 
 # ─────────────────────────────────────────────────────────────
 app = Flask(__name__)
-app.config['SECRET_KEY']                  = os.environ.get('SECRET_KEY', 'escala-naval-secret-2025')
-app.config['SQLALCHEMY_DATABASE_URI']     = 'sqlite:///escala.db'
+
+_secret = os.environ.get('SECRET_KEY')
+if not _secret:
+    raise RuntimeError(
+        'SECRET_KEY não definida. Gere uma com: '
+        'python -c "import secrets; print(secrets.token_hex(32))"'
+    )
+app.config['SECRET_KEY']                  = _secret
+app.config['SQLALCHEMY_DATABASE_URI']     = os.environ.get(
+    'DATABASE_URL', 'postgresql://localhost/escala_naval'
+)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db.init_app(app)
+migrate = Migrate(app, db)
+csrf = CSRFProtect(app)
 
 MESES_PT = ['', 'Janeiro','Fevereiro','Março','Abril','Maio','Junho',
             'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro']
@@ -31,6 +44,15 @@ DIAS_SEMANA = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']
 # ─────────────────────────────────────────────────────────────
 # Context processors
 # ─────────────────────────────────────────────────────────────
+@app.after_request
+def set_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    return response
+
+
 @app.context_processor
 def inject_globals():
     hoje = date.today()
@@ -134,10 +156,16 @@ def militares_lista():
 def militar_novo():
     if request.method == 'POST':
         try:
+            nome = request.form['nome'].strip()
+            if not nome or len(nome) > 200:
+                raise ValueError('Nome deve ter entre 1 e 200 caracteres.')
+            esp = request.form.get('especialidade', '').strip() or None
+            if esp and len(esp) > 100:
+                raise ValueError('Especialidade deve ter no máximo 100 caracteres.')
             m = Military(
-                nome=request.form['nome'].strip(),
+                nome=nome,
                 graduacao=request.form['graduacao'],
-                especialidade=request.form.get('especialidade', '').strip() or None,
+                especialidade=esp,
                 numero_antiguidade=int(request.form['numero_antiguidade']),
                 status=request.form.get('status', 'ativo'),
                 data_entrada_escala=date.fromisoformat(request.form['data_entrada_escala']),
@@ -149,7 +177,8 @@ def militar_novo():
             return redirect(url_for('militares_lista'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao cadastrar: {e}', 'danger')
+            app.logger.error('Erro em militar_novo: %s', e, exc_info=True)
+            flash('Erro ao cadastrar militar. Verifique os dados e tente novamente.', 'danger')
 
     proximo_num = (db.session.query(db.func.max(Military.numero_antiguidade)).scalar() or 0) + 1
     return render_template('militares/form.html',
@@ -163,9 +192,15 @@ def militar_editar(id):
     m = Military.query.get_or_404(id)
     if request.method == 'POST':
         try:
-            m.nome               = request.form['nome'].strip()
+            nome = request.form['nome'].strip()
+            if not nome or len(nome) > 200:
+                raise ValueError('Nome deve ter entre 1 e 200 caracteres.')
+            esp = request.form.get('especialidade', '').strip() or None
+            if esp and len(esp) > 100:
+                raise ValueError('Especialidade deve ter no máximo 100 caracteres.')
+            m.nome               = nome
             m.graduacao          = request.form['graduacao']
-            m.especialidade      = request.form.get('especialidade', '').strip() or None
+            m.especialidade      = esp
             m.numero_antiguidade = int(request.form['numero_antiguidade'])
             m.status             = request.form.get('status', 'ativo')
             m.data_entrada_escala = date.fromisoformat(request.form['data_entrada_escala'])
@@ -175,7 +210,8 @@ def militar_editar(id):
             return redirect(url_for('militares_lista'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro: {e}', 'danger')
+            app.logger.error('Erro em militar_editar: %s', e, exc_info=True)
+            flash('Erro ao atualizar militar. Verifique os dados e tente novamente.', 'danger')
     return render_template('militares/form.html',
                            militar=m, graduacoes=GRADUACOES,
                            status_labels=STATUS_LABELS)
@@ -259,12 +295,15 @@ def afastamento_novo():
             di = date.fromisoformat(request.form['data_inicio'])
             df = date.fromisoformat(request.form['data_fim'])
             if df < di:
-                raise ValueError('Data fim anterior à data início.')
+                raise ValueError('Data fim não pode ser anterior à data início.')
+            motivo = request.form.get('motivo', '').strip() or None
+            if motivo and len(motivo) > 500:
+                raise ValueError('Motivo deve ter no máximo 500 caracteres.')
             af = Afastamento(
                 military_id=int(request.form['military_id']),
                 tipo=request.form['tipo'],
                 data_inicio=di, data_fim=df,
-                motivo=request.form.get('motivo', '').strip() or None,
+                motivo=motivo,
                 observacoes=request.form.get('observacoes', '').strip() or None,
             )
             db.session.add(af)
@@ -273,7 +312,8 @@ def afastamento_novo():
             return redirect(url_for('afastamentos_lista'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro: {e}', 'danger')
+            app.logger.error('Erro em afastamento_novo: %s', e, exc_info=True)
+            flash('Erro ao registrar afastamento. Verifique os dados e tente novamente.', 'danger')
     mil_id = request.args.get('military_id', type=int)
     return render_template('afastamentos/form.html',
                            af=None, militares_todos=militares_todos,
@@ -291,19 +331,23 @@ def afastamento_editar(id):
             di = date.fromisoformat(request.form['data_inicio'])
             df = date.fromisoformat(request.form['data_fim'])
             if df < di:
-                raise ValueError('Data fim anterior à data início.')
+                raise ValueError('Data fim não pode ser anterior à data início.')
+            motivo = request.form.get('motivo', '').strip() or None
+            if motivo and len(motivo) > 500:
+                raise ValueError('Motivo deve ter no máximo 500 caracteres.')
             af.military_id  = int(request.form['military_id'])
             af.tipo         = request.form['tipo']
             af.data_inicio  = di
             af.data_fim     = df
-            af.motivo       = request.form.get('motivo', '').strip() or None
+            af.motivo       = motivo
             af.observacoes  = request.form.get('observacoes', '').strip() or None
             db.session.commit()
             flash('Afastamento atualizado.', 'success')
             return redirect(url_for('afastamentos_lista'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro: {e}', 'danger')
+            app.logger.error('Erro em afastamento_editar: %s', e, exc_info=True)
+            flash('Erro ao atualizar afastamento. Verifique os dados e tente novamente.', 'danger')
     return render_template('afastamentos/form.html',
                            af=af, militares_todos=militares_todos,
                            status_labels=STATUS_LABELS,
@@ -380,7 +424,8 @@ def escala_gerar():
                 return redirect(url_for('escala_mensal', ano=ano, mes=mes))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro ao gerar escala: {e}', 'danger')
+            app.logger.error('Erro em escala_gerar: %s', e, exc_info=True)
+            flash('Erro ao gerar escala. Verifique os parâmetros e tente novamente.', 'danger')
 
     hoje = date.today()
     return render_template('escala/gerar.html', hoje=hoje)
@@ -413,7 +458,8 @@ def servico_novo():
                 return redirect(url_for('escala_mensal', ano=dt.year, mes=dt.month))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro: {e}', 'danger')
+            app.logger.error('Erro em servico_novo: %s', e, exc_info=True)
+            flash('Erro ao adicionar serviço. Verifique os dados e tente novamente.', 'danger')
 
     pre_data = request.args.get('data', '')
     pre_tipo = request.args.get('tipo', '')
@@ -439,7 +485,8 @@ def servico_editar(id):
             return redirect(url_for('escala_mensal', ano=srv.data.year, mes=srv.data.month))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro: {e}', 'danger')
+            app.logger.error('Erro em servico_editar: %s', e, exc_info=True)
+            flash('Erro ao atualizar serviço. Verifique os dados e tente novamente.', 'danger')
     return render_template('escala/servico_form.html',
                            srv=srv, militares_todos=militares_todos,
                            escala_labels=ESCALA_LABELS,
@@ -514,9 +561,12 @@ def feriados_lista():
 def feriado_novo():
     if request.method == 'POST':
         try:
+            nome = request.form['nome'].strip()
+            if not nome or len(nome) > 200:
+                raise ValueError('Nome deve ter entre 1 e 200 caracteres.')
             f = FeriadoEspecial(
                 data=date.fromisoformat(request.form['data']),
-                nome=request.form['nome'].strip(),
+                nome=nome,
                 tipo=request.form['tipo'],
                 recorrente=request.form.get('recorrente') == '1',
                 descricao=request.form.get('descricao', '').strip() or None,
@@ -527,7 +577,8 @@ def feriado_novo():
             return redirect(url_for('feriados_lista'))
         except Exception as e:
             db.session.rollback()
-            flash(f'Erro: {e}', 'danger')
+            app.logger.error('Erro em feriado_novo: %s', e, exc_info=True)
+            flash('Erro ao cadastrar feriado. Verifique os dados e tente novamente.', 'danger')
     return render_template('feriados/form.html', f=None)
 
 
@@ -623,13 +674,8 @@ def api_conflito_check():
         conf, motivo = tem_conflito(mid, dt, tipo)
         return jsonify(dict(conflito=conf, motivo=motivo))
     except Exception as e:
-        return jsonify(dict(error=str(e))), 400
-
-# ─────────────────────────────────────────────────────────────
-# Init
-# ─────────────────────────────────────────────────────────────
-with app.app_context():
-    db.create_all()
+        app.logger.error('Erro em api_conflito_check: %s', e, exc_info=True)
+        return jsonify(dict(error='Erro interno')), 400
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=os.environ.get('FLASK_DEBUG', '0') == '1', host='0.0.0.0', port=5000)

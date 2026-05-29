@@ -95,6 +95,7 @@
               <form method="POST" action="{{ url_for('afastamento_excluir', id=af.id) }}"
                     style="display:inline"
                     data-confirm="Remover este afastamento?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-danger-mil"
                         style="padding:.25rem .55rem;font-size:.8rem">🗑️</button>
               </form>

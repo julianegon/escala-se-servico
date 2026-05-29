@@ -139,6 +139,14 @@ function submitPost(action, confirm_msg) {
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = action;
+  const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+  if (csrfMeta) {
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrf_token';
+    csrfInput.value = csrfMeta.content;
+    form.appendChild(csrfInput);
+  }
   document.body.appendChild(form);
   form.submit();
 }

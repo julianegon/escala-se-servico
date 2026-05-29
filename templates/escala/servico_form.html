@@ -13,6 +13,7 @@
     <div class="card-header">Dados do Serviço</div>
     <div class="card-body">
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div style="margin-bottom:1rem">
           <label class="form-label">Data *</label>
@@ -79,6 +80,7 @@
           {% if srv %}
           <form method="POST" action="{{ url_for('servico_excluir', id=srv.id) }}"
                 style="margin-left:auto" data-confirm="Remover este serviço?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <button type="submit" class="btn-danger-mil">🗑️ Remover</button>
           </form>
           {% endif %}

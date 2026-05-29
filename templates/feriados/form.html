@@ -12,6 +12,7 @@
     <div class="card-header">Dados do Feriado</div>
     <div class="card-body">
       <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
         <div style="margin-bottom:1rem">
           <label class="form-label">Data *</label>

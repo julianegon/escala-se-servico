@@ -79,7 +79,7 @@
 
               {% for s in cell.servicos %}
               <div class="cal-srv {{ s.tipo_escala }}"
-                   title="{{ s.militar.nome }} — {{ s.tipo_label }}{% if s.troca_forcada %} (TF){% endif %}">
+                   title="{{ s.militar.nome|e }} — {{ s.tipo_label|e }}{% if s.troca_forcada %} (TF){% endif %}">
                 <span>{{ s.tipo_label[0] }}</span>
                 <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">
                   {{ s.militar.nome.split()[-1] }}
@@ -91,7 +91,7 @@
                      style="color:inherit;opacity:.6;font-size:.65rem"
                      title="Editar">✏</a>
                   <a href="#" onclick="submitPost('{{ url_for('servico_excluir', id=s.id) }}',
-                     'Remover serviço de {{ s.militar.nome }}?');return false"
+                     'Remover serviço de {{ s.militar.nome|e }}?');return false"
                      style="color:var(--red);opacity:.6;font-size:.65rem"
                      title="Remover">✕</a>
                 </span>

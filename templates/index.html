@@ -160,7 +160,7 @@
               {% if s.troca_forcada %}<span class="badge-tf">TF</span>{% endif %}
               {% if s.observacoes %}
               <span class="text-dim" style="font-size:.75rem"
-                    data-tooltip="{{ s.observacoes }}">ℹ️</span>
+                    data-tooltip="{{ s.observacoes|e }}">ℹ️</span>
               {% endif %}
             </td>
           </tr>

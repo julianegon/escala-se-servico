@@ -83,6 +83,7 @@
                  title="Registrar afastamento">🚫</a>
               <form method="POST" action="{{ url_for('militar_toggle', id=m.id) }}"
                     style="display:inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-secondary-mil"
                         style="padding:.25rem .55rem;font-size:.8rem"
                         title="{{ 'Reativar' if not m.ativo else 'Desativar' }}">
@@ -91,7 +92,8 @@
               </form>
               <form method="POST" action="{{ url_for('militar_excluir', id=m.id) }}"
                     style="display:inline"
-                    data-confirm="Confirma exclusão de {{ m.nome }}? Todos os serviços serão removidos.">
+                    data-confirm="Confirma exclusão de {{ m.nome|e }}? Todos os serviços serão removidos.">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <button type="submit" class="btn-danger-mil"
                         style="padding:.25rem .55rem;font-size:.8rem">🗑️</button>
               </form>

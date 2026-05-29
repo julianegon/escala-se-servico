@@ -34,8 +34,6 @@ FERIADOS_CUSTOMIZADOS = [
 
 def seed():
     with app.app_context():
-        db.create_all()
-
         if Military.query.count() > 0:
             print('Banco já populado. Use --force para limpar e repopular.')
             return
@@ -87,6 +85,5 @@ if __name__ == '__main__':
     if '--force' in sys.argv:
         with app.app_context():
             db.drop_all()
-            db.create_all()
-        print('Banco limpo.')
+        print('Banco limpo. Execute: flask db upgrade')
     seed()
