@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if srv else 'Adicionar' }} Serviço{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{{ url_for('escala_mensal', ano=ano_atual, mes=mes_atual) }}"
+     class="btn-secondary-mil">← Escala</a>
+  <h1>{{ '✏️ Editar Serviço' if srv else '➕ Adicionar Serviço Manual' }}</h1>
+</div>
+
+<div class="page-body">
+  <div class="card" style="max-width:520px">
+    <div class="card-header">Dados do Serviço</div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Data *</label>
+          <input type="date" id="data_input" name="data" required class="form-control"
+                 value="{{ srv.data.isoformat() if srv else pre_data }}">
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Militar *</label>
+          <select id="military_id" name="military_id" required class="form-select">
+            <option value="">— Selecione —</option>
+            {% for m in militares_todos %}
+            <option value="{{ m.id }}"
+              {{ 'selected' if srv and srv.military_id == m.id }}>
+              {{ m.numero_antiguidade }}. {{ m.nome }} ({{ m.graduacao }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Tipo de Escala *</label>
+          <select id="tipo_escala" name="tipo_escala" required class="form-select">
+            <option value="">— Selecione —</option>
+            {% for k, v in escala_labels.items() %}
+            <option value="{{ k }}"
+              {{ 'selected' if srv and srv.tipo_escala == k or pre_tipo == k }}>{{ v }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Nome do Evento (para Roxa)</label>
+          <input type="text" name="nome_evento" class="form-control"
+                 value="{{ srv.nome_evento if srv else '' }}"
+                 placeholder="Ex: Natal, Ano Novo, Carnaval…">
+        </div>
+
+        <!-- Alerta de conflito (preenchido via JS) -->
+        <div id="conflito_alert" class="alert-mil alert-mil-warning"
+             style="display:none;margin-bottom:1rem">
+          ⚠️ <span class="conflito-msg"></span>
+          <div style="margin-top:.5rem">
+            <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+              <input type="checkbox" name="ignorar_conflito" value="1"
+                     class="form-check-input">
+              <span style="font-size:.83rem">Ignorar conflito e prosseguir (TF registrado)</span>
+            </label>
+          </div>
+        </div>
+
+        <div style="margin-bottom:1.25rem">
+          <label class="form-label">Observações</label>
+          <textarea name="observacoes" class="form-control" rows="3"
+                    placeholder="Justificativa ou notas…">{{ srv.observacoes if srv else '' }}</textarea>
+        </div>
+
+        <div style="display:flex;gap:.75rem">
+          <button type="submit" class="btn-primary-mil">
+            {{ '💾 Salvar' if srv else '✅ Adicionar' }}
+          </button>
+          <a href="{{ url_for('escala_mensal', ano=ano_atual, mes=mes_atual) }}"
+             class="btn-secondary-mil">Cancelar</a>
+          {% if srv %}
+          <form method="POST" action="{{ url_for('servico_excluir', id=srv.id) }}"
+                style="margin-left:auto" data-confirm="Remover este serviço?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-danger-mil">🗑️ Remover</button>
+          </form>
+          {% endif %}
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

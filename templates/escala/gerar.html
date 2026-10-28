@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Gerar Escala{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{{ url_for('escala_mensal', ano=ano_atual, mes=mes_atual) }}"
+     class="btn-secondary-mil">← Escala</a>
+  <h1>⚙️ Gerar Escala Automática</h1>
+</div>
+
+<div class="page-body">
+  <div class="card" style="max-width:520px">
+    <div class="card-header">Parâmetros de Geração</div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+          <div>
+            <label class="form-label">Mês *</label>
+            <select name="mes" required class="form-select">
+              {% for i in range(1,13) %}
+              <option value="{{ i }}"
+                {{ 'selected' if i == hoje.month }}>{{ meses_pt[i] }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="form-label">Ano *</label>
+            <input type="number" name="ano" required class="form-control"
+                   value="{{ hoje.year }}" min="2020" max="2099">
+          </div>
+        </div>
+
+        <div style="margin-bottom:1.25rem">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+            <input type="checkbox" name="sobrescrever" value="1"
+                   class="form-check-input" style="width:1rem;height:1rem">
+            <span style="font-size:.88rem">
+              <strong>Sobrescrever</strong> escala já gerada para este mês
+            </span>
+          </label>
+          <div class="text-dim" style="font-size:.77rem;margin-top:.25rem;padding-left:1.5rem">
+            Atenção: remove apenas serviços gerados automaticamente.
+            Serviços adicionados manualmente são preservados.
+          </div>
+        </div>
+
+        <div class="alert-mil alert-mil-info" style="margin-bottom:1rem">
+          <strong>O sistema irá:</strong>
+          <ul style="margin:.5rem 0 0 1rem;padding:0;font-size:.85rem">
+            <li>Identificar o tipo de cada dia (útil / feriado / crítico)</li>
+            <li>Montar fila de militares conforme regras de antiguidade</li>
+            <li>Verificar disponibilidade e afastamentos</li>
+            <li>Checar conflitos de descanso (Preta↔Vermelha)</li>
+            <li>Realizar trocas forçadas quando necessário</li>
+            <li>Priorizar militares modernos para Roxa (com histórico)</li>
+          </ul>
+        </div>
+
+        <button type="submit" class="btn-green-mil" style="width:100%;padding:.6rem">
+          ⚙️ Gerar Escala
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Informações sobre os tipos -->
+  <div style="max-width:520px;margin-top:1.25rem;display:flex;flex-direction:column;gap:.75rem">
+    <div style="background:var(--preta-bg);border:1px solid var(--preta-bd);border-radius:6px;padding:.75rem 1rem">
+      <div class="fw-600" style="color:var(--preta-txt);margin-bottom:.25rem">🖤 Escala Preta (Pernoite Dia Útil)</div>
+      <div class="text-dim" style="font-size:.82rem">08h–12h, retorno 16h, pernoite até 08h do dia seguinte. Fila: antigo→moderno.</div>
+    </div>
+    <div style="background:var(--diario-bg);border:1px solid var(--diario-bd);border-radius:6px;padding:.75rem 1rem">
+      <div class="fw-600" style="color:var(--diario-txt);margin-bottom:.25rem">💚 Escala Diário</div>
+      <div class="text-dim" style="font-size:.82rem">12h–16h, serviço leve, não pernoita. Fila: moderno→antigo.</div>
+    </div>
+    <div style="background:var(--vermelha-bg);border:1px solid var(--vermelha-bd);border-radius:6px;padding:.75rem 1rem">
+      <div class="fw-600" style="color:var(--vermelha-txt);margin-bottom:.25rem">❤️ Escala Vermelha (FDS/Feriado)</div>
+      <div class="text-dim" style="font-size:.82rem">08h a 08h do dia seguinte. Sábados, domingos, feriados comuns. Fila: antigo→moderno.</div>
+    </div>
+    <div style="background:var(--roxa-bg);border:1px solid var(--roxa-bd);border-radius:6px;padding:.75rem 1rem">
+      <div class="fw-600" style="color:var(--roxa-txt);margin-bottom:.25rem">💜 Escala Roxa (Feriados Críticos)</div>
+      <div class="text-dim" style="font-size:.82rem">Natal, Ano Novo, Carnaval, recessos. Prioridade: nunca fez o evento → faz menos → mais moderno.</div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

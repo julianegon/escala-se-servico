@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if militar else 'Novo' }} Militar{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{{ url_for('militares_lista') }}" class="btn-secondary-mil">← Voltar</a>
+  <h1>{{ '✏️ Editar Militar' if militar else '➕ Novo Militar' }}</h1>
+</div>
+
+<div class="page-body">
+  <div class="card" style="max-width:680px">
+    <div class="card-header">Dados do Militar</div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+
+          <!-- Nome -->
+          <div style="grid-column:span 2">
+            <label class="form-label">Nome completo *</label>
+            <input type="text" name="nome" required class="form-control"
+                   value="{{ militar.nome if militar else '' }}"
+                   placeholder="Ex: José Pereira da Silva">
+          </div>
+
+          <!-- Graduação -->
+          <div>
+            <label class="form-label">Graduação *</label>
+            <select name="graduacao" required class="form-select">
+              {% for g in graduacoes %}
+              <option value="{{ g }}"
+                {{ 'selected' if militar and militar.graduacao == g }}>{{ g }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Especialidade -->
+          <div>
+            <label class="form-label">Especialidade</label>
+            <input type="text" name="especialidade" class="form-control"
+                   value="{{ militar.especialidade if militar else '' }}"
+                   placeholder="Ex: Manobras, Comunicações…">
+          </div>
+
+          <!-- Número de antiguidade -->
+          <div>
+            <label class="form-label">
+              Número de Antiguidade *
+              <span class="text-dim" style="font-size:.75rem">
+                (1 = mais antigo/sênior)
+              </span>
+            </label>
+            <input type="number" name="numero_antiguidade" required
+                   class="form-control" min="1"
+                   value="{{ militar.numero_antiguidade if militar else proximo_num }}">
+          </div>
+
+          <!-- Status -->
+          <div>
+            <label class="form-label">Status Operacional *</label>
+            <select name="status" required class="form-select">
+              {% for k, v in status_labels.items() %}
+              <option value="{{ k }}"
+                {{ 'selected' if militar and militar.status == k }}>{{ v }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Data entrada na escala -->
+          <div>
+            <label class="form-label">Data de Entrada na Escala *</label>
+            <input type="date" name="data_entrada_escala" required class="form-control"
+                   value="{{ militar.data_entrada_escala.isoformat() if militar else '' }}">
+          </div>
+
+        </div>
+
+        <!-- Observações -->
+        <div style="margin-bottom:1.25rem">
+          <label class="form-label">Observações</label>
+          <textarea name="observacoes" class="form-control" rows="3"
+                    placeholder="Informações adicionais…">{{ militar.observacoes if militar else '' }}</textarea>
+        </div>
+
+        <!-- Botões -->
+        <div style="display:flex;gap:.75rem">
+          <button type="submit" class="btn-primary-mil">
+            {{ '💾 Salvar Alterações' if militar else '✅ Cadastrar Militar' }}
+          </button>
+          <a href="{{ url_for('militares_lista') }}" class="btn-secondary-mil">Cancelar</a>
+          {% if militar %}
+          <form method="POST" action="{{ url_for('militar_excluir', id=militar.id) }}"
+                style="margin-left:auto"
+                data-confirm="Confirma exclusão de {{ militar.nome|e }}?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-danger-mil">🗑️ Excluir</button>
+          </form>
+          {% endif %}
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- Nota sobre antiguidade -->
+  <div class="alert-mil alert-mil-info" style="max-width:680px;margin-top:1rem">
+    ℹ️ <strong>Antiguidade:</strong> O número de antiguidade define a posição do militar
+    na fila de escala. Número <strong>menor</strong> = mais <em>antigo</em> (maior precedência
+    para Preta e Vermelha). Número <strong>maior</strong> = mais <em>moderno</em> (maior
+    precedência para Diário e Roxa).
+  </div>
+
+</div>
+{% endblock %}

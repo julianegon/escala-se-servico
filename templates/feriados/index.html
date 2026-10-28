@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Feriados Especiais{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>🗓️ Feriados Especiais</h1>
+  <a href="{{ url_for('feriado_novo') }}" class="btn-primary-mil" style="margin-left:auto">
+    ➕ Adicionar Feriado
+  </a>
+</div>
+
+<div class="page-body">
+
+  <!-- Filtro de ano para visualização -->
+  <form method="GET" style="margin-bottom:1.25rem;display:flex;align-items:center;gap:.75rem">
+    <label class="form-label" style="margin:0">Visualizar feriados calculados para:</label>
+    <input type="number" name="ano" value="{{ ano_f }}" class="form-control" style="width:90px">
+    <button type="submit" class="btn-secondary-mil">Ver</button>
+  </form>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem">
+
+    <!-- Feriados críticos automáticos -->
+    <div class="card">
+      <div class="card-header" style="color:var(--roxa-txt)">
+        💜 Feriados Críticos — {{ ano_f }} (automáticos)
+        <span class="text-dim" style="font-size:.75rem;margin-left:.5rem">→ Escala Roxa</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table-dark-custom">
+          {% for dt, nome in criticos_auto %}
+          <tr>
+            <td class="nowrap" style="font-size:.85rem">{{ dt.strftime('%d/%m/%Y') }}</td>
+            <td class="text-dim" style="font-size:.8rem">{{ dias_semana[dt.weekday()] }}</td>
+            <td><span class="badge-roxa">{{ nome }}</span></td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+
+    <!-- Feriados comuns automáticos -->
+    <div class="card">
+      <div class="card-header" style="color:var(--vermelha-txt)">
+        ❤️ Feriados Comuns — {{ ano_f }} (automáticos)
+        <span class="text-dim" style="font-size:.75rem;margin-left:.5rem">→ Escala Vermelha</span>
+      </div>
+      <div class="card-body p-0">
+        <table class="table-dark-custom">
+          {% for dt in comuns_auto %}
+          <tr>
+            <td class="nowrap" style="font-size:.85rem">{{ dt.strftime('%d/%m/%Y') }}</td>
+            <td class="text-dim" style="font-size:.8rem">{{ dias_semana[dt.weekday()] }}</td>
+            <td><span class="badge-vermelha">Nacional</span></td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feriados customizados no banco -->
+  <div class="card" style="margin-top:1.25rem">
+    <div class="card-header">📌 Feriados Customizados (Banco de Dados)</div>
+    <div class="card-body p-0">
+      {% if feriados_db %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th>Data</th><th>Nome</th><th>Tipo</th><th>Recorrente</th><th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for f in feriados_db %}
+          <tr>
+            <td class="nowrap text-dim">{{ f.data.strftime('%d/%m/%Y') }}</td>
+            <td>{{ f.nome }}</td>
+            <td>
+              {% if f.tipo == 'critico' %}
+              <span class="badge-roxa">Crítico</span>
+              {% else %}
+              <span class="badge-vermelha">Comum</span>
+              {% endif %}
+            </td>
+            <td class="text-dim">{{ '✅ Sim' if f.recorrente else 'Não' }}</td>
+            <td>
+              <form method="POST" action="{{ url_for('feriado_excluir', id=f.id) }}"
+                    style="display:inline"
+                    data-confirm="Remover o feriado '{{ f.nome|e }}'?">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn-danger-mil"
+                        style="padding:.25rem .55rem;font-size:.8rem">🗑️</button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--txt2)">
+        Nenhum feriado customizado cadastrado.
+        <a href="{{ url_for('feriado_novo') }}">Adicionar</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="alert-mil alert-mil-info" style="margin-top:1rem;font-size:.83rem">
+    ℹ️ Os feriados automáticos (Natal, Ano Novo, Carnaval, Páscoa, etc.) são calculados
+    internamente e <strong>não precisam ser cadastrados</strong>. Use feriados customizados
+    para adicionar <strong>recessos operacionais</strong> ou feriados locais/municipais.
+  </div>
+
+</div>
+{% endblock %}

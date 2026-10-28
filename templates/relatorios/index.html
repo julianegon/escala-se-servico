@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block title %}Relatórios{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📈 Relatórios Operacionais</h1>
+  <form method="GET" style="margin-left:auto;display:flex;align-items:center;gap:.5rem">
+    <label class="form-label" style="margin:0;font-size:.88rem">Ano:</label>
+    <select name="ano" class="form-select" style="width:90px">
+      {% for a in anos_disp %}
+      <option value="{{ a }}" {{ 'selected' if a == ano }}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn-secondary-mil">Ver</button>
+  </form>
+  <button onclick="window.print()" class="btn-secondary-mil">🖨️ Imprimir</button>
+</div>
+
+<div class="page-body">
+
+  <!-- ── Tabela de carga completa ──────────────────────────── -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header">⚖️ Carga Operacional por Militar — {{ ano }}</div>
+    <div class="card-body p-0" style="overflow-x:auto">
+      {% if carga %}
+      {% set max_pesado = carga | map(attribute='pesado') | max %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Militar</th>
+            <th>Graduação</th>
+            <th>🖤 Preta</th>
+            <th>💚 Diário</th>
+            <th>❤️ Vermelha</th>
+            <th>💜 Roxa</th>
+            <th>Total</th>
+            <th>Pesados</th>
+            <th style="min-width:120px">Carga Visual</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in carga %}
+          <tr>
+            <td class="text-dim mono">{{ c.m.numero_antiguidade }}</td>
+            <td>
+              <a href="{{ url_for('militar_detalhe', id=c.m.id) }}"
+                 style="color:var(--txt)">{{ c.m.nome }}</a>
+            </td>
+            <td class="text-dim" style="font-size:.82rem">{{ c.m.graduacao }}</td>
+            <td><span class="badge-preta">{{ c.preta }}</span></td>
+            <td><span class="badge-diario">{{ c.diario }}</span></td>
+            <td><span class="badge-vermelha">{{ c.vermelha }}</span></td>
+            <td><span class="badge-roxa">{{ c.roxa }}</span></td>
+            <td class="fw-600">{{ c.total }}</td>
+            <td>
+              {% if c.pesado >= 8 %}
+              <span class="text-red fw-600">{{ c.pesado }} ⚠️</span>
+              {% else %}
+              <span class="fw-600">{{ c.pesado }}</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if max_pesado > 0 %}
+              <div style="display:flex;gap:2px;align-items:center">
+                <div class="prog-bar-wrap" style="flex:1">
+                  {% set pct = (c.pesado / max_pesado * 100)|round|int %}
+                  <div class="prog-bar prog-vermelha" style="width:{{ pct }}%"></div>
+                </div>
+                <span class="text-dim" style="font-size:.72rem;width:28px;text-align:right">
+                  {{ pct }}%
+                </span>
+              </div>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:2rem;text-align:center;color:var(--txt2)">
+        Nenhum dado para {{ ano }}.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.5rem">
+
+    <!-- Distribuição de eventos críticos por militar -->
+    <div class="card">
+      <div class="card-header">💜 Histórico Roxa por Militar</div>
+      <div class="card-body p-0">
+        {% if hist_roxa %}
+        <table class="table-dark-custom">
+          <thead>
+            <tr><th>Militar</th><th>Total</th><th>Últimos eventos</th></tr>
+          </thead>
+          <tbody>
+            {% for h in hist_roxa %}
+            {% if h.count > 0 %}
+            <tr>
+              <td>
+                <a href="{{ url_for('militar_detalhe', id=h.militar.id) }}"
+                   style="color:var(--txt)">{{ h.militar.nome }}</a>
+              </td>
+              <td><span class="badge-roxa">{{ h.count }}</span></td>
+              <td style="font-size:.77rem;color:var(--txt2)">
+                {% for s in h.servicos[:3] %}
+                  {{ s.nome_evento or '?' }}
+                  <span class="text-dim">({{ s.data.year }})</span>{% if not loop.last %}, {% endif %}
+                {% endfor %}
+                {% if h.servicos|length > 3 %}…{% endif %}
+              </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="padding:1rem;text-align:center;color:var(--txt2)">
+          Sem histórico Roxa.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Distribuição por evento -->
+    <div class="card">
+      <div class="card-header">📊 Serviços Roxa por Evento</div>
+      <div class="card-body p-0">
+        {% if eventos_roxa %}
+        <table class="table-dark-custom">
+          <thead><tr><th>Evento</th><th>Total</th></tr></thead>
+          <tbody>
+            {% for nome, total in eventos_roxa %}
+            <tr>
+              <td><span class="badge-roxa">{{ nome }}</span></td>
+              <td class="fw-600">{{ total }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="padding:1rem;text-align:center;color:var(--txt2)">
+          Nenhum evento registrado.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Trocas forçadas -->
+  <div class="card">
+    <div class="card-header" style="color:var(--yellow)">
+      ⚠️ Trocas Forçadas — {{ ano }}
+      <span class="text-dim" style="font-size:.8rem;margin-left:.5rem">
+        ({{ trocas|length }} registro(s))
+      </span>
+    </div>
+    <div class="card-body p-0">
+      {% if trocas %}
+      <table class="table-dark-custom">
+        <thead>
+          <tr><th>Data</th><th>Militar</th><th>Tipo</th><th>Motivo</th></tr>
+        </thead>
+        <tbody>
+          {% for s in trocas %}
+          <tr>
+            <td class="nowrap text-dim">{{ s.data.strftime('%d/%m/%Y') }}</td>
+            <td>
+              <a href="{{ url_for('militar_detalhe', id=s.militar.id) }}"
+                 style="color:var(--txt)">{{ s.militar.nome }}</a>
+            </td>
+            <td><span class="badge-{{ s.tipo_escala }}">{{ s.tipo_label }}</span></td>
+            <td class="text-dim" style="font-size:.82rem">
+              {{ s.observacoes or '—' }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div style="padding:1.5rem;text-align:center;color:var(--txt2)">
+        ✅ Nenhuma troca forçada em {{ ano }}.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

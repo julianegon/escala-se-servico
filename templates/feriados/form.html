@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Novo Feriado{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{{ url_for('feriados_lista') }}" class="btn-secondary-mil">← Feriados</a>
+  <h1>➕ Adicionar Feriado / Recesso</h1>
+</div>
+
+<div class="page-body">
+  <div class="card" style="max-width:480px">
+    <div class="card-header">Dados do Feriado</div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Data *</label>
+          <input type="date" name="data" required class="form-control"
+                 value="{{ f.data.isoformat() if f else '' }}">
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Nome *</label>
+          <input type="text" name="nome" required class="form-control"
+                 value="{{ f.nome if f else '' }}"
+                 placeholder="Ex: Recesso Operacional, Feriado Municipal…">
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Tipo *</label>
+          <select name="tipo" required class="form-select">
+            <option value="critico" {{ 'selected' if f and f.tipo=='critico' }}>
+              💜 Crítico → Gera Escala Roxa (Natal, Ano Novo, Carnaval, Recessos)
+            </option>
+            <option value="comum" {{ 'selected' if f and f.tipo=='comum' }}>
+              ❤️ Comum → Gera Escala Vermelha (Feriados municipais/estaduais)
+            </option>
+          </select>
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label style="display:flex;align-items:center;gap:.5rem;cursor:pointer">
+            <input type="checkbox" name="recorrente" value="1"
+                   class="form-check-input"
+                   {{ 'checked' if f and f.recorrente }}>
+            <span class="form-label" style="margin:0">
+              Recorrente (mesmo dia/mês todo ano)
+            </span>
+          </label>
+          <div class="text-dim" style="font-size:.77rem;margin-top:.2rem;padding-left:1.5rem">
+            Se marcado, aplica-se automaticamente nos mesmos dia e mês de anos futuros.
+          </div>
+        </div>
+
+        <div style="margin-bottom:1.25rem">
+          <label class="form-label">Descrição</label>
+          <textarea name="descricao" class="form-control" rows="2"
+                    placeholder="Detalhes ou justificativa…">{{ f.descricao if f else '' }}</textarea>
+        </div>
+
+        <div style="display:flex;gap:.75rem">
+          <button type="submit" class="btn-primary-mil">✅ Salvar</button>
+          <a href="{{ url_for('feriados_lista') }}" class="btn-secondary-mil">Cancelar</a>
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

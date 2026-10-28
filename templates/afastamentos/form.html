@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if af else 'Novo' }} Afastamento{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <a href="{{ url_for('afastamentos_lista') }}" class="btn-secondary-mil">← Afastamentos</a>
+  <h1>{{ '✏️ Editar Afastamento' if af else '➕ Registrar Afastamento' }}</h1>
+</div>
+
+<div class="page-body">
+  <div class="card" style="max-width:560px">
+    <div class="card-header">Dados do Afastamento</div>
+    <div class="card-body">
+      <form method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Militar *</label>
+          <select name="military_id" required class="form-select">
+            <option value="">— Selecione —</option>
+            {% for m in militares_todos %}
+            <option value="{{ m.id }}"
+              {{ 'selected' if (af and af.military_id == m.id) or (not af and pre_mil_id == m.id) }}>
+              {{ m.numero_antiguidade }}. {{ m.nome }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Tipo de Afastamento *</label>
+          <select name="tipo" required class="form-select">
+            {% for k, v in status_labels.items() %}
+            {% if k != 'ativo' %}
+            <option value="{{ k }}"
+              {{ 'selected' if af and af.tipo == k }}>{{ v }}</option>
+            {% endif %}
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+          <div>
+            <label class="form-label">Data de Início *</label>
+            <input type="date" name="data_inicio" required class="form-control"
+                   value="{{ af.data_inicio.isoformat() if af else '' }}">
+          </div>
+          <div>
+            <label class="form-label">Data de Fim *</label>
+            <input type="date" name="data_fim" required class="form-control"
+                   value="{{ af.data_fim.isoformat() if af else '' }}">
+          </div>
+        </div>
+
+        <div style="margin-bottom:1rem">
+          <label class="form-label">Motivo</label>
+          <input type="text" name="motivo" class="form-control"
+                 value="{{ af.motivo if af else '' }}"
+                 placeholder="Motivo do afastamento…">
+        </div>
+
+        <div style="margin-bottom:1.25rem">
+          <label class="form-label">Observações</label>
+          <textarea name="observacoes" class="form-control" rows="3"
+                    placeholder="Informações adicionais…">{{ af.observacoes if af else '' }}</textarea>
+        </div>
+
+        <div class="alert-mil alert-mil-info" style="margin-bottom:1rem;font-size:.83rem">
+          ℹ️ O sistema <strong>retirará automaticamente</strong> este militar da concorrência
+          durante o período e o <strong>reinserirá</strong> ao término do afastamento.
+        </div>
+
+        <div style="display:flex;gap:.75rem">
+          <button type="submit" class="btn-primary-mil">
+            {{ '💾 Salvar' if af else '✅ Registrar' }}
+          </button>
+          <a href="{{ url_for('afastamentos_lista') }}" class="btn-secondary-mil">Cancelar</a>
+          {% if af %}
+          <form method="POST" action="{{ url_for('afastamento_excluir', id=af.id) }}"
+                style="margin-left:auto" data-confirm="Remover este afastamento?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn-danger-mil">🗑️ Remover</button>
+          </form>
+          {% endif %}
+        </div>
+
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

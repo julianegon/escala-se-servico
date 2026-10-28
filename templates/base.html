@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <title>{% block title %}Escala Naval{% endblock %} — Sistema de Escala Militar</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- Sidebar toggle (mobile) -->
+<button class="sidebar-toggle" id="sidebarToggle" aria-label="Menu">☰</button>
+<div id="sidebarOverlay" class="d-none" style="
+  position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;"></div>
+
+<!-- ── SIDEBAR ────────────────────────────────────────────── -->
+<aside id="sidebar">
+  <div class="sidebar-brand">
+    <span class="anchor">⚓</span>
+    <span>Escala Naval</span>
+  </div>
+  <nav>
+    <a href="{{ url_for('dashboard') }}"
+       class="nav-link {{ 'active' if request.endpoint=='dashboard' }}">
+      <span class="nav-icon">📊</span> Dashboard
+    </a>
+
+    <div class="nav-section">Pessoal</div>
+    <a href="{{ url_for('militares_lista') }}"
+       class="nav-link {{ 'active' if request.endpoint in ('militares_lista','militar_novo','militar_editar','militar_detalhe') }}">
+      <span class="nav-icon">👥</span> Militares
+    </a>
+    <a href="{{ url_for('afastamentos_lista') }}"
+       class="nav-link {{ 'active' if 'afastamento' in request.endpoint }}">
+      <span class="nav-icon">🚫</span> Afastamentos
+    </a>
+
+    <div class="nav-section">Escala</div>
+    <a href="{{ url_for('escala_mensal', ano=ano_atual, mes=mes_atual) }}"
+       class="nav-link {{ 'active' if request.endpoint=='escala_mensal' }}">
+      <span class="nav-icon">📅</span> Escala Mensal
+    </a>
+    <a href="{{ url_for('escala_gerar') }}"
+       class="nav-link {{ 'active' if request.endpoint=='escala_gerar' }}">
+      <span class="nav-icon">⚙️</span> Gerar Escala
+    </a>
+    <a href="{{ url_for('servico_novo') }}"
+       class="nav-link {{ 'active' if request.endpoint=='servico_novo' }}">
+      <span class="nav-icon">➕</span> Add Serviço
+    </a>
+
+    <div class="nav-section">Consultas</div>
+    <a href="{{ url_for('historico') }}"
+       class="nav-link {{ 'active' if request.endpoint=='historico' }}">
+      <span class="nav-icon">📜</span> Histórico
+    </a>
+    <a href="{{ url_for('relatorios') }}"
+       class="nav-link {{ 'active' if request.endpoint=='relatorios' }}">
+      <span class="nav-icon">📈</span> Relatórios
+    </a>
+    <a href="{{ url_for('feriados_lista') }}"
+       class="nav-link {{ 'active' if 'feriado' in request.endpoint }}">
+      <span class="nav-icon">🗓️</span> Feriados
+    </a>
+  </nav>
+
+  <!-- Info rodapé da sidebar -->
+  <div style="padding:.75rem 1rem;border-top:1px solid var(--border);font-size:.72rem;color:var(--txt2)">
+    📆 Hoje: <strong style="color:var(--txt)">{{ hoje.strftime('%d/%m/%Y') }}</strong>
+  </div>
+</aside>
+
+<!-- ── CONTEÚDO PRINCIPAL ──────────────────────────────────── -->
+<div id="main-content">
+
+  <!-- Flash messages -->
+  <div class="flash-container" id="flashContainer">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash-msg {% if cat=='success' %}alert-mil-success{% elif cat=='warning' %}alert-mil-warning{% elif cat=='danger' %}alert-mil-danger{% else %}alert-mil-info{% endif %}">
+          <span>{{ msg }}</span>
+          <button type="button">✕</button>
+        </div>
+      {% endfor %}
+    {% endwith %}
+  </div>
+
+  {% block content %}{% endblock %}
+</div>
+
+<!-- Chart.js (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
